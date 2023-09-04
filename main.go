@@ -7,10 +7,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/hiosi123/udongmat/auth"
 	"github.com/hiosi123/udongmat/config"
+	"github.com/hiosi123/udongmat/db"
 	"github.com/hiosi123/udongmat/handlers"
 	"github.com/hiosi123/udongmat/storage"
 	"go.uber.org/fx"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func newFiberServer(lc fx.Lifecycle, userHandlers *handlers.UserHandler) *fiber.App {
@@ -24,11 +28,11 @@ func newFiberServer(lc fx.Lifecycle, userHandlers *handlers.UserHandler) *fiber.
 	})
 
 	// attach the user handlers
-	// userGroup := app.Group("/users")
-	// userGroup.Post("/sign-up", userHandlers.SignUpUser)
-	// userGroup.Post("/sign-in", userHandlers.SignInUser)
-	// userGroup.Get("/me", userHandlers.GetUserInfo)
-	// userGroup.Post("/sign-out", userHandlers.SignOutUser)
+	userGroup := app.Group("/users")
+	userGroup.Post("/sign-up", userHandlers.SignUpUser)
+	userGroup.Post("/sign-in", userHandlers.SignInUser)
+	userGroup.Get("/me", userHandlers.GetUserInfo)
+	userGroup.Post("/sign-out", userHandlers.SignOutUser)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
@@ -50,14 +54,16 @@ func main() {
 		fx.Provide(
 			// creates: configEnvVars
 			config.LoadEnv,
+			// create: *sqlx.DB
+			db.CreateMySqlConnection,
 			// creates: *storage.UserStorage
 			storage.NewUserStorage,
 			// creates: *handlers.UserHandler
-			// handlers.UserHandler,
+			handlers.NewUserHandler,
 			// creats: *redis.Client
-			// db.CreateRedisConnection,
+			db.CreateRedisConnection,
 			// creates: *auth.SessionManager
-			// auth.NewSessionManager
+			auth.NewSessionManager,
 		),
 		fx.Invoke(newFiberServer),
 	).Run()
