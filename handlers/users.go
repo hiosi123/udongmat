@@ -10,28 +10,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserHandler struct {
-	Storage        *storage.UserStorage
+type AccountHandler struct {
+	Storage        *storage.AccountStorage
 	SessionManager *auth.SessionManager
 }
 
-func NewUserHandler(storage *storage.UserStorage, sessionManager *auth.SessionManager) *UserHandler {
-	return &UserHandler{Storage: storage, SessionManager: sessionManager}
+func NewAccountHandler(storage *storage.AccountStorage, sessionManager *auth.SessionManager) *AccountHandler {
+	return &AccountHandler{Storage: storage, SessionManager: sessionManager}
 }
 
 type SuccessResponse struct {
 	Success bool `json:"success"`
 }
 
-// SignOutUser godoc
+// SignOut godoc
 //
-// @Summary Sign out a user
-// @Tags users
+// @Summary Sign out
+// @Tags accounts
 // @Accept json
 // @Produce json
 // @Success 200 {object} SuccessResponse
-// @Router /users/sign-out [post]
-func (u *UserHandler) SignOutUser(c *fiber.Ctx) error {
+// @Router /accounts/sign-out [post]
+func (u *AccountHandler) SignOut(c *fiber.Ctx) error {
 	// get the session from the authorization header
 	sessionHeader := c.Get("Authorization")
 
@@ -52,15 +52,15 @@ func (u *UserHandler) SignOutUser(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
-// GetUserInfo godoc
-// @Summary Get the user's info
-// @Tags users
+// GetInfo godoc
+// @Summary Get the Accounts's info
+// @Tags accounts
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Success 200 {object} auth.UserSession
-// @Router /users/me [get]
-func (u *UserHandler) GetUserInfo(c *fiber.Ctx) error {
+// @Success 200 {object} auth.AccountSession
+// @Router /accounts/me [get]
+func (u *AccountHandler) GetInfo(c *fiber.Ctx) error {
 	// get the session from the authorization header
 	sessionHeader := c.Get("Authorization")
 
@@ -72,13 +72,13 @@ func (u *UserHandler) GetUserInfo(c *fiber.Ctx) error {
 	// get the session id
 	sessionId := sessionHeader[7:]
 
-	// get the user data from the session
-	user, err := u.SessionManager.GetSession(sessionId)
+	// get the account data from the session
+	account, err := u.SessionManager.GetSession(sessionId)
 	if err != nil {
 		return c.JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.JSON(user)
+	return c.JSON(account)
 }
 
 type signInRequestBody struct {
@@ -86,34 +86,34 @@ type signInRequestBody struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-// SignInUser godoc
-// @Summary Sign in a user
-// @Tags users
+// SignInaccount godoc
+// @Summary Sign in a account
+// @Tags accounts
 // @Accept json
 // @Produce json
-// @Param user body signInRequestBody true "The user's email and password"
+// @Param account body signInRequestBody true "The account's email and password"
 // @Success 200 {object} SuccessResponse
 // @Header 200 {string} Authorization "contains the session id in bearer format"
-// @Router /users/sign-in [post]
-func (u *UserHandler) SignInUser(c *fiber.Ctx) error {
-	var user signInRequestBody
+// @Router /accounts/sign-in [post]
+func (u *AccountHandler) SignIn(c *fiber.Ctx) error {
+	var account signInRequestBody
 
-	err := c.BodyParser(&user)
+	err := c.BodyParser(&account)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(user)
+	fmt.Println(account)
 
-	// validate the user struct
+	// validate the account struct
 	validate := validator.New()
-	err = validate.Struct(user)
+	err = validate.Struct(account)
 	if err != nil {
 		return err
 	}
 
-	// sign the user in
-	sessionId, err := u.SessionManager.SignIn(user.Email, user.Password)
+	// sign the account in
+	sessionId, err := u.SessionManager.SignIn(account.Email, account.Password)
 	if err != nil {
 		return err
 	}
@@ -124,66 +124,63 @@ func (u *UserHandler) SignInUser(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
-type userRequestBody struct {
-	FirstName string `json:"first_name" validate:"required"`
-	LastName  string `json:"last_name" validate:"required"`
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=6"`
+type AccountRequestBody struct {
+	Name     string `json:"name" validate:"required,name"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 type signUpSuccessResponse struct {
 	Id int `json:"id"`
 }
 
-// SignUpUser godoc
-// @Summary Sign up a user
-// @Tags users
+// SignUpaccount godoc
+// @Summary Sign up a account
+// @Tags accounts
 // @Accept json
 // @Produce json
-// @Param user body userRequestBody true "The user's first name, last name, email, and password"
+// @Param account body accountRequestBody true "The account's name, email, and password"
 // @Success 200 {object} signUpSuccessResponse
 // @Header 200 {string} Authorization "contains the session id in bearer format"
-// @Router /users/sign-up [post]
-func (u *UserHandler) SignUpUser(c *fiber.Ctx) error {
+// @Router /accounts/sign-up [post]
+func (u *AccountHandler) SignUp(c *fiber.Ctx) error {
 	// get the info from the request body
-	var user userRequestBody
+	var account AccountRequestBody
 
-	err := c.BodyParser(&user)
+	err := c.BodyParser(&account)
 	if err != nil {
 		return err
 	}
 
-	// validate the user struct
+	// validate the account struct
 	validate := validator.New()
-	err = validate.Struct(user)
+	err = validate.Struct(&account)
 	if err != nil {
 		return err
 	}
 
 	// hash the passowrd
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	// create the user
-	id, err := u.Storage.CreateNewUser(storage.NewUser{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Password:  string(hashedPassword),
+	// create the account
+	id, err := u.Storage.CreateNewAccount(storage.NewAccount{
+		Name:     account.Name,
+		Email:    account.Email,
+		Password: string(hashedPassword),
 	})
 
 	if err != nil {
 		return err
 	}
 
-	// generate the user's session
-	sessionId, err := u.SessionManager.GenerateSession(auth.UserSession{
-		Id:        id,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
+	// generate the account's session
+	sessionId, err := u.SessionManager.GenerateSession(auth.AccountSession{
+		Id:    id,
+		Name:  account.Name,
+		Email: account.Email,
 	})
 	if err != nil {
 		return err

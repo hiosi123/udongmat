@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -24,6 +25,7 @@ func LoadEnv() EnvVars {
 	redis_db := os.Getenv("REDIS_DB")
 	parsed_redis_db, err := strconv.Atoi(redis_db)
 	if err != nil {
+		fmt.Println(dsn, redis_addr, redis_pass, redis_db)
 		panic("cannot parse redis DB number")
 	}
 

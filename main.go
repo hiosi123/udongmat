@@ -17,7 +17,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func newFiberServer(lc fx.Lifecycle, userHandlers *handlers.UserHandler) *fiber.App {
+func newFiberServer(lc fx.Lifecycle, accountHandlers *handlers.AccountHandler) *fiber.App {
 	app := fiber.New()
 
 	app.Use(cors.New())
@@ -27,12 +27,12 @@ func newFiberServer(lc fx.Lifecycle, userHandlers *handlers.UserHandler) *fiber.
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	// attach the user handlers
-	userGroup := app.Group("/users")
-	userGroup.Post("/sign-up", userHandlers.SignUpUser)
-	userGroup.Post("/sign-in", userHandlers.SignInUser)
-	userGroup.Get("/me", userHandlers.GetUserInfo)
-	userGroup.Post("/sign-out", userHandlers.SignOutUser)
+	// attach the account handlers
+	accountGroup := app.Group("/accounts")
+	accountGroup.Post("/sign-up", accountHandlers.SignUp)
+	accountGroup.Post("/sign-in", accountHandlers.SignIn)
+	accountGroup.Get("/me", accountHandlers.GetInfo)
+	accountGroup.Post("/sign-out", accountHandlers.SignOut)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
@@ -56,10 +56,10 @@ func main() {
 			config.LoadEnv,
 			// create: *sqlx.DB
 			db.CreateMySqlConnection,
-			// creates: *storage.UserStorage
-			storage.NewUserStorage,
-			// creates: *handlers.UserHandler
-			handlers.NewUserHandler,
+			// creates: *storage.AccountStorage
+			storage.NewAccountStorage,
+			// creates: *handlers.AccountHandler
+			handlers.NewAccountHandler,
 			// creats: *redis.Client
 			db.CreateRedisConnection,
 			// creates: *auth.SessionManager

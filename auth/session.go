@@ -19,22 +19,20 @@ func NewSessionManager(rdb *redis.Client, conn *sqlx.DB) *SessionManager {
 	return &SessionManager{Rdb: rdb, Conn: conn}
 }
 
-type UserSession struct {
-	Id        int
-	FirstName string
-	LastName  string
-	Email     string
+type AccountSession struct {
+	Id    int
+	Name  string
+	Email string
 }
 
-type User struct {
-	Id        int
-	FirstName string
-	LastName  string
-	Email     string
-	Password  string
+type Account struct {
+	Id       int
+	Name     string
+	Email    string
+	Password string
 }
 
-func (s *SessionManager) GenerateSession(data UserSession) (string, error) {
+func (s *SessionManager) GenerateSession(data AccountSession) (string, error) {
 	sessionId := uuid.NewString()
 	jsonData, _ := json.Marshal(data)
 	err := s.Rdb.Set(sessionId, string(jsonData), 24*time.Hour).Err()
@@ -46,27 +44,26 @@ func (s *SessionManager) GenerateSession(data UserSession) (string, error) {
 }
 
 func (s *SessionManager) SignIn(email, password string) (string, error) {
-	// check if the user exits
-	var user User
-	err := s.Conn.QueryRow(`SELECT id, first_name, last_name, email, password FROM users WHERE email = ?`,
-		email).Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.Password)
+	// check if the account exits
+	var account Account
+	err := s.Conn.QueryRow(`SELECT id, name, email, password FROM account WHERE email = ?`,
+		email).Scan(&account.Id, &account.Name, &account.Email, &account.Password)
 	if err != nil {
 		return "", err
 	}
 
 	// check if the password matches
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
 	if err != nil {
 		return "", err
 	}
 
 	// create the session=
 	sessionId := uuid.NewString()
-	jsonData, _ := json.Marshal(UserSession{
-		Id:        user.Id,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
+	jsonData, _ := json.Marshal(AccountSession{
+		Id:    account.Id,
+		Name:  account.Name,
+		Email: account.Email,
 	})
 	err = s.Rdb.Set(sessionId, string(jsonData), 24*time.Hour).Err()
 	if err != nil {
@@ -80,18 +77,18 @@ func (s *SessionManager) SignOut(sessionId string) error {
 	return s.Rdb.Del(sessionId).Err()
 }
 
-func (s *SessionManager) GetSession(session string) (*UserSession, error) {
+func (s *SessionManager) GetSession(session string) (*AccountSession, error) {
 	data, err := s.Rdb.Get(session).Result()
 	if err != nil {
 		return nil, err
 	}
 
 	// unmarshal the data
-	var userSession UserSession
-	err = json.Unmarshal([]byte(data), &userSession)
+	var accountSession AccountSession
+	err = json.Unmarshal([]byte(data), &accountSession)
 	if err != nil {
 		return nil, err
 	}
 
-	return &userSession, nil
+	return &accountSession, nil
 }

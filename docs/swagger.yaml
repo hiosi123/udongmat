@@ -1,0 +1,286 @@
+definitions:
+  auth.UserSession:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+    type: object
+  handlers.SuccessResponse:
+    properties:
+      success:
+        type: boolean
+    type: object
+  handlers.basicResponse:
+    properties:
+      success:
+        type: boolean
+    type: object
+  handlers.createTodoRequest:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.createTodoResponse:
+    properties:
+      id:
+        type: integer
+    type: object
+  handlers.fetchOneTodoResponse:
+    properties:
+      todo:
+        $ref: '#/definitions/storage.Todo_DB'
+    type: object
+  handlers.fetchTodosResponse:
+    properties:
+      todos:
+        items:
+          $ref: '#/definitions/storage.Todo_DB'
+        type: array
+    type: object
+  handlers.signInRequestBody:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.signUpSuccessResponse:
+    properties:
+      id:
+        type: integer
+    type: object
+  handlers.userRequestBody:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    type: object
+  storage.Todo_DB:
+    properties:
+      completed:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a basic CRUD api with authentication, written by @bmdavis419.
+  title: Go Svelte Todos API
+  version: "1.0"
+paths:
+  /todos:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.fetchTodosResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Fetch all of a user's todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: The todo's info
+        in: body
+        name: todo
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createTodoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.createTodoResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new Todo
+      tags:
+      - todos
+  /todos/:id:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.basicResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a Todo
+      tags:
+      - todos
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.fetchOneTodoResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Fetch one of a user's todos
+      tags:
+      - todos
+  /todos/:id/complete:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.basicResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Mark a todo as completed
+      tags:
+      - todos
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.UserSession'
+      security:
+      - ApiKeyAuth: []
+      summary: Get the user's info
+      tags:
+      - users
+  /users/sign-in:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: The user's email and password
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.signInRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Authorization:
+              description: contains the session id in bearer format
+              type: string
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+      summary: Sign in a user
+      tags:
+      - users
+  /users/sign-out:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+      summary: Sign out a user
+      tags:
+      - users
+  /users/sign-up:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: The user's first name, last name, email, and password
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.userRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Authorization:
+              description: contains the session id in bearer format
+              type: string
+          schema:
+            $ref: '#/definitions/handlers.signUpSuccessResponse'
+      summary: Sign up a user
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    description: Token in Bearer format to authenticate the user
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

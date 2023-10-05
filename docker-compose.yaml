@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  my-redis:
+    image: redis:latest
+    command: ["redis-server", "--requirepass", "root"]
+    ports:
+      - "6379:6379"
+
+  my-mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_USER: root
+    ports:
+      - "3306:3306"
+    
+  udongmat:
+    build:
+      dockerfile: ./Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - my-redis
+      - my-mysql
+      
+    
